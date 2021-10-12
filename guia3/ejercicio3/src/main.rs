@@ -1,17 +1,16 @@
 use std::fs::File;
 use std::io::{self, prelude::*, BufReader};
 use std::collections::HashMap;
-use std::iter::FromIterator;
 use std::thread;
 
 fn main() -> io::Result<()> {
-    let paths: Vec<Vec<String>> = vec!["contar1.txt".to_owned(), "contar2.txt".to_owned(), "contar3.txt".to_owned(), "contar4.txt".to_owned()].chunks(2).map(|s| s.into()).collect();
+    let paths: Vec<Vec<String>> = vec!["contar1.txt".to_owned(), "contar2.txt".to_owned(), "contar3.txt".to_owned(), 
+                                        "contar4.txt".to_owned()].chunks(2).map(|s| s.into()).collect();
     
     let mut thread_handles = vec![];    
     spawn_threads(paths, &mut thread_handles);
 
     let mut frequencies: Vec<HashMap<String, u32>> = vec![];
-    
     for handle in thread_handles {
         frequencies.push(handle.join().unwrap());        
     }
@@ -20,11 +19,17 @@ fn main() -> io::Result<()> {
             .into_iter()
             .reduce(|a, b| merge_hashmap_counter(a, b))
             .unwrap();
-
-    let mut frequencies = Vec::from_iter(frequencies.iter());
-    frequencies.sort_by(|a, b| (b.1).cmp(&(a.1)));
+    let frequencies = hashmap_to_vec(frequencies);
     print_frequencies(frequencies);
     Ok(())
+}
+
+fn hashmap_to_vec(map: HashMap<String, u32>) -> Vec<(String, u32)> {
+    let mut frequencies: Vec<(String, u32)> = map
+                                                .into_iter()
+                                                .collect();
+    frequencies.sort_by(|a, b| (b.1).cmp(&(a.1)));
+    frequencies
 }
 
 fn spawn_threads(paths: Vec<Vec<String>>, handles: &mut Vec<thread::JoinHandle<HashMap<String, u32>>>) {
@@ -77,7 +82,7 @@ fn process_file(reader: BufReader<File>) -> HashMap<String, u32>{
 }
 
 
-fn print_frequencies(frequencies: Vec<(&String, &u32)>) {
+fn print_frequencies(frequencies: Vec<(String, u32)>) {
     for element in frequencies.iter() {
         println!("{} -> {}", element.0, element.1);
     }
