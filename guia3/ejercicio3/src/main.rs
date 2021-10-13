@@ -2,11 +2,20 @@ use std::fs::File;
 use std::io::{self, prelude::*, BufReader};
 use std::collections::HashMap;
 use std::thread;
+use std::sync::mpsc;
 
 fn main() -> io::Result<()> {
+    alternative_1();
+    println!("\n\n");
+    alternative_2();
+
+    Ok(())
+}
+
+fn alternative_1() {
     let paths: Vec<Vec<String>> = vec!["contar1.txt".to_owned(), "contar2.txt".to_owned(), "contar3.txt".to_owned(), 
                                         "contar4.txt".to_owned()].chunks(2).map(|s| s.into()).collect();
-    
+
     let mut thread_handles = vec![];    
     spawn_threads(paths, &mut thread_handles);
 
@@ -15,13 +24,44 @@ fn main() -> io::Result<()> {
         frequencies.push(handle.join().unwrap());        
     }
 
+    let frequencies = merge_hashmap_counter_vec(frequencies);
+    let frequencies = hashmap_to_vec(frequencies);
+    print_frequencies(frequencies);
+}
+
+fn alternative_2() {
+    let paths: Vec<Vec<String>> = vec!["contar1.txt".to_owned(), "contar2.txt".to_owned(), "contar3.txt".to_owned(), 
+                                        "contar4.txt".to_owned()].chunks(2).map(|s| s.into()).collect();
+
+    let (tx, rx) = mpsc::channel();
+    spawn_threads_channels(paths, tx);
+
+    let mut frequencies = vec![];
+    for received in rx {
+        frequencies.push(received)
+    }
+    let frequencies = merge_hashmap_counter_vec(frequencies);
+    let frequencies = hashmap_to_vec(frequencies);
+    print_frequencies(frequencies);  
+}
+
+fn merge_hashmap_counter_vec(frequencies: Vec<HashMap<String, u32>>) -> HashMap<String, u32>{
     let frequencies = frequencies
             .into_iter()
             .reduce(|a, b| merge_hashmap_counter(a, b))
             .unwrap();
-    let frequencies = hashmap_to_vec(frequencies);
-    print_frequencies(frequencies);
-    Ok(())
+    frequencies
+}
+
+fn spawn_threads_channels(paths: Vec<Vec<String>>, tx: mpsc::Sender<HashMap<String, u32>>) {
+    for chunk in paths {
+        let tx_clone = tx.clone();
+        thread::spawn(move || {
+            let frequencies = process_files(chunk);
+            tx_clone.send(frequencies).unwrap();
+        });
+    }
+    drop(tx);
 }
 
 fn hashmap_to_vec(map: HashMap<String, u32>) -> Vec<(String, u32)> {
