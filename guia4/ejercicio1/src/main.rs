@@ -2,12 +2,13 @@ use std::io::prelude::*;
 use std::net::TcpListener;
 use std::net::TcpStream;
 
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+//use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::net::SocketAddr;
 use std::io::Read;
 use std::thread;
 
 fn main() {
-    let listener = TcpListener::bind("192.168.59.128:7878").unwrap();
+    let listener = TcpListener::bind("0.0.0.0:7878").unwrap();
     
     let handle = thread::spawn(|| {
         client_thread();
@@ -28,9 +29,9 @@ fn server_handle_connection(mut stream: TcpStream) {
 }
 
 fn client_thread() {
-    let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(192, 168, 59, 128)), 7877);
+    //let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 7877);
     let addrs = [
-        SocketAddr::from(([192, 168, 59, 128], 7878)),
+        SocketAddr::from(([0, 0, 0, 0], 7878)),
     ];
     if let Ok(stream) = TcpStream::connect(&addrs[..]) {
         client_handle_connection(stream);
